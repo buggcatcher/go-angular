@@ -1,0 +1,26 @@
+# Terminal 1: Start Go backend
+cd backend
+go mod tidy
+go run main.go
+
+# Terminal 2: Start Angular
+ng serve
+# Visit http://localhost:4200
+# Login with: username=demo, password=demo123
+
+# 1. Start MySQL
+mysql.server start  # macOS
+# or
+sudo systemctl start mysql  # Linux
+
+# 2. Create database
+mysql -u root -p angular_auth < /home/monke/Codes/angular/backend/schema.sql
+
+# 3. Update connection string in main.go if needed (line with DSN)
+
+# 4. Install dependencies
+cd backend
+go mod tidy
+
+# 5. Run the backend
+go run main.go
