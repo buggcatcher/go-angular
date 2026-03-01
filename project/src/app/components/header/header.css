@@ -1,0 +1,46 @@
+#header {
+  background-color: #333;
+  color: white;
+  padding: 1rem;
+}
+
+.bg-blue-500 {
+  background-color: #3b82f6;
+}
+
+.p-5 {
+  padding: 1.25rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.col-sm-12 {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .col-md-3 {
+    width: 25%;
+  }
+}
+
+button {
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  cursor: pointer;
+}
+
+.bg-green-500 {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+a {
+  color: white;
+  text-decoration: none;
+}

@@ -1,0 +1,46 @@
+.about {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+p {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+}
+
+.tech-stack {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h2 {
+  color: #007bff;
+  margin-bottom: 1.5rem;
+}
+
+.stack-section {
+  margin-bottom: 1.5rem;
+}
+
+h3 {
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+ul {
+  list-style-position: inside;
+  color: #666;
+}
+
+li {
+  padding: 0.25rem 0;
+}
