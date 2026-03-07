@@ -1,7 +1,12 @@
 .homepage {
-  max-width: 800px;
-  margin: 2rem auto;
+  width: 100%;
+  min-height: 85vh;
+  margin: 0;
   padding: 2rem;
+  background-image: url('/public/background.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 h1 {

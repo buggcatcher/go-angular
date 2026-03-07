@@ -3,10 +3,12 @@ import { Homepage } from './pages/homepage/homepage';
 import { About } from './pages/about/about';
 import { LoginComponent } from './components/login/login.component';
 import { ProfileComponent } from './pages/profile/profile.component';
+import { CalculatorComponent } from './pages/calculator/calculator.component';
 
 export const routes: Routes = [
     { path: '',   loadComponent: (() => Homepage) },
     { path: 'about',   loadComponent: (() => About) },
     { path: 'login',   loadComponent: (() => LoginComponent) },
     { path: 'profile',   loadComponent: (() => ProfileComponent) },
+    { path: 'calculator',   loadComponent: (() => CalculatorComponent) },
 ];

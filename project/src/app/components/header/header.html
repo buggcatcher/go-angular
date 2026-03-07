@@ -1,17 +1,32 @@
-<div id="header">
-    <h1>Header</h1>
-    <div class="row bg-blue-500 p-5">
-        <div class="col-sm-12 col-md-3">
-            <button routerLink="/" class="bg-green-500 w-50 h-30"><a routerLink="/">Homepage</a></button>
-        </div>
-        <div class="col-sm-12 col-md-3">
-            <button routerLink="/about" class="bg-green-500 w-50 h-30"><a routerLink="/about">About</a></button>
-        </div>
-        <div class="col-sm-12 col-md-3">
-            <button routerLink="/login" class="bg-green-500 w-50 h-30"><a routerLink="/login">Login</a></button>
-        </div>
-        <div class="col-sm-12 col-md-3">
-            <button routerLink="/profile" class="bg-green-500 w-50 h-30"><a routerLink="/profile">Profile</a></button>
-        </div>
+<nav class="navbar navbar-expand-md" id="header">
+  <div class="container-fluid">
+    <a class="navbar-brand" routerLink="">Poker Calculator</a>
+
+    <button
+      class="navbar-toggler custom-toggler"
+      type="button"
+      (click)="isCollapsed = !isCollapsed"
+      aria-controls="navbarSupportedContent"
+      [attr.aria-expanded]="!isCollapsed"
+      aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div
+      class="collapse navbar-collapse"
+      id="navbarSupportedContent"
+      [collapse]="isCollapsed">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/about">About</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/contacts">Contacts</a>
+        </li>
+      </ul>
     </div>
-</div>
+  </div>
+</nav>

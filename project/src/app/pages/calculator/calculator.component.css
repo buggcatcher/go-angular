@@ -1,0 +1,12 @@
+.form {
+    width: 100%;
+    max-width: 400px;
+}
+
+.form-control {
+    width: auto;
+    padding: 0.5rem;
+    font-size: 1.1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
