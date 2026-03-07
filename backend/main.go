@@ -164,7 +164,8 @@ func profile(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Initialize database - using "test" database, change if needed
-	dsn := "angular:angular123@tcp(localhost:3306)/test"
+	// password is exposed !!
+	dsn := "angular:sara2475@tcp(localhost:3306)/test"
 	err := InitDatabase(dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v\n", err)

@@ -1,85 +1,88 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-login',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-login',
+    imports: [FormsModule],
+    template: `
     <div class="login-container">
       <div class="tabs">
-        <button 
-          class="tab-button" 
-          [class.active]="activeTab === 'login'" 
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'login'"
           (click)="activeTab = 'login'; clearMessages()">
           Login
         </button>
-        <button 
-          class="tab-button" 
-          [class.active]="activeTab === 'register'" 
+        <button
+          class="tab-button"
+          [class.active]="activeTab === 'register'"
           (click)="activeTab = 'register'; clearMessages()">
           Register
         </button>
       </div>
-      
-      <div *ngIf="error" class="error">{{ error }}</div>
-      <div *ngIf="message" class="success">{{ message }}</div>
-      
+    
+      @if (error) {
+        <div class="error">{{ error }}</div>
+      }
+      @if (message) {
+        <div class="success">{{ message }}</div>
+      }
+    
       <!-- Login Form -->
-      <form (ngSubmit)="onLogin()" *ngIf="activeTab === 'login' && !isLoggedIn">
-        <h2>Login</h2>
-        <div class="form-group">
-          <label>Username:</label>
-          <input [(ngModel)]="username" name="username" required type="text" placeholder="Enter username">
-        </div>
-        
-        <div class="form-group">
-          <label>Password:</label>
-          <input [(ngModel)]="password" name="password" required type="password" placeholder="Enter password">
-        </div>
-        
-        <button type="submit" [disabled]="loading">
-          {{ loading ? 'Logging in...' : 'Login' }}
-        </button>
-        
-        <p class="hint">Demo credentials: username=<strong>demo</strong>, password=<strong>demo123</strong></p>
-      </form>
-      
+      @if (activeTab === 'login' && !isLoggedIn) {
+        <form (ngSubmit)="onLogin()">
+          <h2>Login</h2>
+          <div class="form-group">
+            <label>Username:</label>
+            <input [(ngModel)]="username" name="username" required type="text" placeholder="Enter username">
+          </div>
+          <div class="form-group">
+            <label>Password:</label>
+            <input [(ngModel)]="password" name="password" required type="password" placeholder="Enter password">
+          </div>
+          <button type="submit" [disabled]="loading">
+            {{ loading ? 'Logging in...' : 'Login' }}
+          </button>
+          <p class="hint">Demo credentials: username=<strong>demo</strong>, password=<strong>demo123</strong></p>
+        </form>
+      }
+    
       <!-- Registration Form -->
-      <form (ngSubmit)="onRegister()" *ngIf="activeTab === 'register' && !isLoggedIn">
-        <h2>Register</h2>
-        <div class="form-group">
-          <label>Username:</label>
-          <input [(ngModel)]="regUsername" name="regUsername" required type="text" placeholder="Choose a username">
-        </div>
-        
-        <div class="form-group">
-          <label>Password:</label>
-          <input [(ngModel)]="regPassword" name="regPassword" required type="password" placeholder="Choose a password">
-        </div>
-        
-        <div class="form-group">
-          <label>Confirm Password:</label>
-          <input [(ngModel)]="regConfirmPassword" name="regConfirmPassword" required type="password" placeholder="Confirm password">
-        </div>
-        
-        <button type="submit" [disabled]="loading">
-          {{ loading ? 'Registering...' : 'Register' }}
-        </button>
-      </form>
-      
+      @if (activeTab === 'register' && !isLoggedIn) {
+        <form (ngSubmit)="onRegister()">
+          <h2>Register</h2>
+          <div class="form-group">
+            <label>Username:</label>
+            <input [(ngModel)]="regUsername" name="regUsername" required type="text" placeholder="Choose a username">
+          </div>
+          <div class="form-group">
+            <label>Password:</label>
+            <input [(ngModel)]="regPassword" name="regPassword" required type="password" placeholder="Choose a password">
+          </div>
+          <div class="form-group">
+            <label>Confirm Password:</label>
+            <input [(ngModel)]="regConfirmPassword" name="regConfirmPassword" required type="password" placeholder="Confirm password">
+          </div>
+          <button type="submit" [disabled]="loading">
+            {{ loading ? 'Registering...' : 'Register' }}
+          </button>
+        </form>
+      }
+    
       <!-- Logged In View -->
-      <div *ngIf="isLoggedIn" class="profile">
-        <h2>Profile</h2>
-        <p>Welcome, <strong>{{ loggedInUser }}</strong>!</p>
-        <button (click)="onLogout()">Logout</button>
-      </div>
+      @if (isLoggedIn) {
+        <div class="profile">
+          <h2>Profile</h2>
+          <p>Welcome, <strong>{{ loggedInUser }}</strong>!</p>
+          <button (click)="onLogout()">Logout</button>
+        </div>
+      }
     </div>
-  `,
-  styles: [`
+    `,
+    styles: [`
     .login-container {
       max-width: 400px;
       margin: 2rem auto;

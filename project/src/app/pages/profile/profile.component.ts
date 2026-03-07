@@ -1,43 +1,45 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-  selector: 'app-profile',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-profile',
+    imports: [],
+    template: `
     <div class="profile-container">
-      <div *ngIf="loading" class="loading">Loading profile...</div>
-      
-      <div *ngIf="error" class="error">{{ error }}</div>
-      
-      <div *ngIf="profileData && !loading" class="profile-card">
-        <div class="profile-header">
-          <div class="avatar">{{ getInitial() }}</div>
-          <h1>{{ profileData.username }}</h1>
-        </div>
-        
-        <div class="profile-info">
-          <div class="info-item">
-            <span class="label">Username:</span>
-            <span class="value">{{ profileData.username }}</span>
+      @if (loading) {
+        <div class="loading">Loading profile...</div>
+      }
+    
+      @if (error) {
+        <div class="error">{{ error }}</div>
+      }
+    
+      @if (profileData && !loading) {
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="avatar">{{ getInitial() }}</div>
+            <h1>{{ profileData.username }}</h1>
           </div>
-          
-          <div class="info-item">
-            <span class="label">Status:</span>
-            <span class="value badge">Active</span>
+          <div class="profile-info">
+            <div class="info-item">
+              <span class="label">Username:</span>
+              <span class="value">{{ profileData.username }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Status:</span>
+              <span class="value badge">Active</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn-logout" (click)="onLogout()">Logout</button>
           </div>
         </div>
-        
-        <div class="actions">
-          <button class="btn-logout" (click)="onLogout()">Logout</button>
-        </div>
-      </div>
+      }
     </div>
-  `,
-  styles: [`
+    `,
+    styles: [`
     .profile-container {
       max-width: 600px;
       margin: 2rem auto;
