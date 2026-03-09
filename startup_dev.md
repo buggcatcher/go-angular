@@ -14,7 +14,7 @@
 - create database test;
 - show databases;
 - use test;
-- grant all privileges on *.* to adam;
+- grant all privileges on *.* to angular;
 - flush privileges;
 
 ### Load DB schema
@@ -34,12 +34,12 @@ Update connection string in main.go if needed (line with DSN)
 ### Terminal 1: Start Go backend
 - cd backend
 - go mod tidy
-- go run main.go
+- go run main.go | go run .
 
 # Frontend
 
 ## Terminal 2: Start Angular
-- ng serve
+- ng serve | npm start 
 
 Login with: username=demo, password=demo123
 

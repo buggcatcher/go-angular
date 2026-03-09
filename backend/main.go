@@ -1,190 +1,186 @@
 package main
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("your-secret-key-change-this-in-production")
+// var jwtSecret = []byte("your-secret-key-change-this-in-production")
 
-// User struct for login/registration
-type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+type Login struct {
+	HashedPassword string
+	SessionToken   string
+	CSRFToken      string
 }
 
-// AuthResponse struct for token response
-type AuthResponse struct {
-	Token   string `json:"token"`
-	Message string `json:"message"`
-}
-
-// Claims struct for JWT
-type Claims struct {
-	Username string `json:"username"`
-	jwt.RegisteredClaims
-}
-
-// Hash password using SHA256
-func hashPassword(password string) string {
-	hash := sha256.Sum256([]byte(password))
-	return fmt.Sprintf("%x", hash)
-}
-
-// CORS middleware
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-// Register endpoint
-func register(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, `{"error":"Invalid request"}`, http.StatusBadRequest)
-		return
-	}
-
-	if user.Username == "" || user.Password == "" {
-		http.Error(w, `{"error":"Username and password required"}`, http.StatusBadRequest)
-		return
-	}
-
-	exists, err := UserExists(user.Username)
-	if err != nil {
-		http.Error(w, `{"error":"Database error"}`, http.StatusInternalServerError)
-		return
-	}
-	if exists {
-		http.Error(w, `{"error":"User already exists"}`, http.StatusConflict)
-		return
-	}
-
-	passwordHash := hashPassword(user.Password)
-	err = CreateUser(user.Username, passwordHash)
-	if err != nil {
-		http.Error(w, `{"error":"Failed to register user"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(AuthResponse{Message: "User registered successfully"})
-}
-
-// Login endpoint
-func login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	var user User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, `{"error":"Invalid request"}`, http.StatusBadRequest)
-		return
-	}
-
-	storedHash, err := GetUserByUsername(user.Username)
-	if err != nil || storedHash != hashPassword(user.Password) {
-		http.Error(w, `{"error":"Invalid credentials"}`, http.StatusUnauthorized)
-		return
-	}
-
-	// Create JWT token
-	claims := &Claims{
-		Username: user.Username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtSecret)
-	if err != nil {
-		http.Error(w, `{"error":"Could not create token"}`, http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(AuthResponse{Token: tokenString, Message: "Login successful"})
-}
-
-// Protected endpoint example
-func profile(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// Get token from Authorization header
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		http.Error(w, `{"error":"Missing authorization header"}`, http.StatusUnauthorized)
-		return
-	}
-
-	// Extract token (format: "Bearer <token>")
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenString == authHeader {
-		http.Error(w, `{"error":"Invalid authorization format"}`, http.StatusUnauthorized)
-		return
-	}
-
-	// Parse and validate token
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
-
-	if err != nil || !token.Valid {
-		http.Error(w, `{"error":"Invalid token"}`, http.StatusUnauthorized)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"message":  "Profile access granted",
-		"username": claims.Username,
-	})
-}
+// Key is the username 
+var users = map[string]Login{}
 
 func main() {
-	// Initialize database - using "test" database, change if needed
-	// password is exposed !!
-	dsn := "angular:sara2475@tcp(localhost:3306)/test"
-	err := InitDatabase(dsn)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v\n", err)
-	}
-	defer CloseDatabase()
-
-	// Create router
-	mux := http.NewServeMux()
-
-	// Register routes
-	mux.HandleFunc("/api/register", register)
-	mux.HandleFunc("/api/login", login)
-	mux.HandleFunc("/api/profile", profile)
-
-	// Wrap with CORS middleware
-	handler := corsMiddleware(mux)
-
-	// Start server
-	port := ":8080"
-	log.Printf("Server running on http://localhost%s\n", port)
-	log.Fatal(http.ListenAndServe(port, handler))
+	http.HandleFunc("/protected", protected)
+	http.HandleFunc("/register", register)
+	http.HandleFunc("/login", login)
+	http.HandleFunc("/logout", logout)
+	log.Println("Server started on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+
+func protected(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		er := http.StatusMethodNotAllowed
+		http.Error(w, "Invalid Method", er)
+		return
+	}
+	
+	if err := Authorize(r); err != nil {
+		er := http.StatusUnauthorized
+		http.Error(w, "Unauthorized", er)
+		return
+	}
+	username := r.FormValue("username")
+	fmt.Fprintf(w, "CSRF validation successful, Welcome %s", username)
+}
+
+// POST request used for creating new resources and sending data
+func register(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		er := http.StatusMethodNotAllowed
+		http.Error(w, "Invalid Method", er)
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	// check length
+	if len(username) < 8 || len(password) < 8 {
+		er := http.StatusNotAcceptable
+		http.Error(w, "Username and password must be at least 8 characters long", er)
+		return
+	}
+	if len(username) == 0 || len(password) == 0 {
+		er := http.StatusNotAcceptable
+		http.Error(w, "Username and password can't be empty", er)
+		return
+	}
+
+	// check if user already exists
+	if _, ok := users[username]; ok {
+		er := http.StatusConflict
+		http.Error(w, "Username already exists", er)
+		return
+	}
+
+	// hash password
+	hashedPassword, _ := hashPassword(password)
+
+	users[username] = Login{
+		HashedPassword: hashedPassword,
+	}
+
+	fmt.Fprintf(w, "User %s registered successfully", username)
+}
+
+func login(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		er := http.StatusMethodNotAllowed
+		http.Error(w, "Invalid Method", er)
+		return
+	}
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	user, ok := users[username]
+	if !ok {
+		er := http.StatusUnauthorized
+		http.Error(w, "Invalid username or password", er)
+		return
+	}
+
+	if !ok || !checkPasswordHash(password, user.HashedPassword) {
+		er := http.StatusUnauthorized
+		http.Error(w, "Invalid username or password", er)
+		return
+	}
+
+	sessionToken := generateToken(32)
+	csrfToken := generateToken(32)
+
+	// set session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    sessionToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+	})
+
+	// set CSRF token in cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    csrfToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: false, // allow access from JavaScript clien-side
+	})
+
+	// store tokens in memory for this demo
+	// user := login
+	user.SessionToken = sessionToken
+	user.CSRFToken = csrfToken
+	users[username] = user
+
+	fmt.Fprintf(w, "User %s logged in successfully", username)
+}
+
+func logout(w http.ResponseWriter, r *http.Request) {
+	if err:= Authorize(r); err != nil {
+		er := http.StatusUnauthorized
+		http.Error(w, "Unauthorized", er)
+		return
+	}
+
+	//clear session cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HttpOnly: true,
+	})
+
+	//clear CSRF token cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		HttpOnly: false,
+	})
+
+	//clear tokens from database
+	username := r.FormValue("username")
+	user, _ := users[username]
+	user.SessionToken = ""
+	user.CSRFToken = ""
+	users[username] = user
+
+	fmt.Fprintf(w, "User %s logged out successfully", username)
+}
+
+
+
+// CORS middleware
+// func corsMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
+// 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+// 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+// 		if r.Method == http.MethodOptions {
+// 			w.WriteHeader(http.StatusOK)
+// 			return
+// 		}
+
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
