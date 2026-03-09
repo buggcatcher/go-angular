@@ -31,6 +31,32 @@
 
 Update connection string in main.go if needed (line with DSN)
 
+### Docker alternative (recommended)
+
+- cd /home/adam/Desktop/go-angular
+- docker compose up -d
+- docker compose ps
+- docker compose logs -f mysql
+
+MySQL is started automatically with:
+
+- database: test
+- user: angular
+- password: password
+- port: 3306
+
+The schema is loaded from `backend/schema.sql` on first startup.
+
+The container has a volume set up for data persistence
+
+Stop MySQL container:
+
+- docker compose down
+
+Reset DB completely (WARNING: deletes all data):
+
+- docker compose down -v
+
 ### Terminal 1: Start Go backend
 - cd backend
 - go mod tidy

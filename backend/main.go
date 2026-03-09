@@ -4,21 +4,25 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
-// var jwtSecret = []byte("your-secret-key-change-this-in-production")
-
-type Login struct {
-	HashedPassword string
-	SessionToken   string
-	CSRFToken      string
-}
-
-// Key is the username 
-var users = map[string]Login{}
-
 func main() {
+	dsn := os.Getenv("MYSQL_DSN")
+	if dsn == "" {
+		dsn = "angular:password@tcp(127.0.0.1:3306)/test?parseTime=true"
+	}
+
+	if err := InitDatabase(dsn); err != nil {
+		log.Fatalf("Failed to connect to MySQL: %v", err)
+	}
+	defer func() {
+		if err := CloseDatabase(); err != nil {
+			log.Printf("Failed to close database: %v", err)
+		}
+	}()
+
 	http.HandleFunc("/protected", protected)
 	http.HandleFunc("/register", register)
 	http.HandleFunc("/login", login)
@@ -29,14 +33,12 @@ func main() {
 
 func protected(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		er := http.StatusMethodNotAllowed
-		http.Error(w, "Invalid Method", er)
+		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if err := Authorize(r); err != nil {
-		er := http.StatusUnauthorized
-		http.Error(w, "Unauthorized", er)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	username := r.FormValue("username")
@@ -46,38 +48,41 @@ func protected(w http.ResponseWriter, r *http.Request) {
 // POST request used for creating new resources and sending data
 func register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		er := http.StatusMethodNotAllowed
-		http.Error(w, "Invalid Method", er)
+		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
 	}
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	// check length
 	if len(username) < 8 || len(password) < 8 {
-		er := http.StatusNotAcceptable
-		http.Error(w, "Username and password must be at least 8 characters long", er)
+		http.Error(w, "Username and password must be at least 8 characters long", http.StatusNotAcceptable)
 		return
 	}
 	if len(username) == 0 || len(password) == 0 {
-		er := http.StatusNotAcceptable
-		http.Error(w, "Username and password can't be empty", er)
+		http.Error(w, "Username and password can't be empty", http.StatusNotAcceptable)
 		return
 	}
 
-	// check if user already exists
-	if _, ok := users[username]; ok {
-		er := http.StatusConflict
-		http.Error(w, "Username already exists", er)
+	exists, err := UserExists(username)
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		http.Error(w, "Username already exists", http.StatusConflict)
 		return
 	}
 
-	// hash password
-	hashedPassword, _ := hashPassword(password)
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		http.Error(w, "Could not hash password", http.StatusInternalServerError)
+		return
+	}
 
-	users[username] = Login{
-		HashedPassword: hashedPassword,
+	if err := CreateUser(username, hashedPassword); err != nil {
+		http.Error(w, "Could not create user", http.StatusInternalServerError)
+		return
 	}
 
 	fmt.Fprintf(w, "User %s registered successfully", username)
@@ -85,31 +90,22 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 func login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		er := http.StatusMethodNotAllowed
-		http.Error(w, "Invalid Method", er)
+		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
 	}
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	user, ok := users[username]
-	if !ok {
-		er := http.StatusUnauthorized
-		http.Error(w, "Invalid username or password", er)
-		return
-	}
-
-	if !ok || !checkPasswordHash(password, user.HashedPassword) {
-		er := http.StatusUnauthorized
-		http.Error(w, "Invalid username or password", er)
+	hash, err := GetUserByUsername(username)
+	if err != nil || !checkPasswordHash(password, hash) {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
 	sessionToken := generateToken(32)
 	csrfToken := generateToken(32)
 
-	// set session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    sessionToken,
@@ -117,31 +113,27 @@ func login(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	// set CSRF token in cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrf_token",
 		Value:    csrfToken,
 		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: false, // allow access from JavaScript clien-side
+		HttpOnly: false,
 	})
 
-	// store tokens in memory for this demo
-	// user := login
-	user.SessionToken = sessionToken
-	user.CSRFToken = csrfToken
-	users[username] = user
+	if err := UpdateUserTokens(username, sessionToken, csrfToken); err != nil {
+		http.Error(w, "Could not create session", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Fprintf(w, "User %s logged in successfully", username)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
-	if err:= Authorize(r); err != nil {
-		er := http.StatusUnauthorized
-		http.Error(w, "Unauthorized", er)
+	if err := Authorize(r); err != nil {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	//clear session cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
@@ -149,7 +141,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 
-	//clear CSRF token cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "csrf_token",
 		Value:    "",
@@ -157,30 +148,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: false,
 	})
 
-	//clear tokens from database
 	username := r.FormValue("username")
-	user, _ := users[username]
-	user.SessionToken = ""
-	user.CSRFToken = ""
-	users[username] = user
+	if err := ClearUserTokens(username); err != nil {
+		http.Error(w, "Could not clear session", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Fprintf(w, "User %s logged out successfully", username)
 }
-
-
-
-// CORS middleware
-// func corsMiddleware(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
-// 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-// 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-// 		if r.Method == http.MethodOptions {
-// 			w.WriteHeader(http.StatusOK)
-// 			return
-// 		}
-
-// 		next.ServeHTTP(w, r)
-// 	})
-// }

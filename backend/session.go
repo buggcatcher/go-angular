@@ -3,14 +3,19 @@ package main
 import (
 	"errors"
 	"net/http"
+	"net/url"
 )
 
 var AuthError = errors.New("Unauthorized")
 
 func Authorize(r *http.Request) error {
 	username := r.FormValue("username")
-	user, ok := users[username]
-	if !ok {
+	if username == "" {
+		return AuthError
+	}
+
+	user, err := GetUserAuthData(username)
+	if err != nil {
 		return AuthError
 	}
 
@@ -19,11 +24,16 @@ func Authorize(r *http.Request) error {
 		return AuthError
 	}
 
-	// we have set http only for the cookie to false
-	// so we can read it
-	// get the CRSF token from the headers
 	csrf := r.Header.Get("X-CSRF-Token")
-	if csrf != user.CSRFToken || csrf == "" {
+	if csrf == "" {
+		return AuthError
+	}
+
+	csrfDecoded, err := url.QueryUnescape(csrf)
+	if err != nil {
+		csrfDecoded = csrf
+	}
+	if csrfDecoded != user.CSRFToken {
 		return AuthError
 	}
 	return nil

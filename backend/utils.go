@@ -3,8 +3,8 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"log"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
 // Hash password using bcrypt
@@ -20,8 +20,8 @@ func checkPasswordHash(password, hash string) bool {
 }
 
 // Base 64 is a binary-to-text encoding scheme that represents binary data in an ASCII string
-// format by translating it into a radix-64 representation. It is commonly used to encode data 
-// that needs to be stored and transferred over media that are designed to deal with textual data. 
+// format by translating it into a radix-64 representation. It is commonly used to encode data
+// that needs to be stored and transferred over media that are designed to deal with textual data.
 // This encoding helps to ensure that the data remains intact without modification during transport.
 func generateToken(length int) string {
 	bytes := make([]byte, length)
