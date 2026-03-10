@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { tap, map } from 'rxjs/operators';
 
 export interface AuthResponse {
-  token?: string;
   message?: string;
   error?: string;
 }
@@ -13,52 +12,71 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api';
-  private tokenSubject = new BehaviorSubject<string | null>(localStorage.getItem('token'));
-  public token$ = this.tokenSubject.asObservable();
+  private apiUrl = 'http://localhost:8080';
+  private loggedInSubject = new BehaviorSubject<boolean>(this.checkLoginStatus());
+  public isLoggedIn$ = this.loggedInSubject.asObservable();
+  private usernameSubject = new BehaviorSubject<string | null>(localStorage.getItem('username'));
+  public username$ = this.usernameSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
-  register(username: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, {
-      username,
-      password
+  private checkLoginStatus(): boolean {
+    return !!localStorage.getItem('username');
+  }
+
+  register(username: string, password: string): Observable<string> {
+    const formData = new URLSearchParams();
+    formData.set('username', username);
+    formData.set('password', password);
+
+    return this.http.post(`${this.apiUrl}/register`, formData.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      responseType: 'text',
+      withCredentials: true
     });
   }
 
-  login(username: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, {
-      username,
-      password
+  login(username: string, password: string): Observable<string> {
+    const formData = new URLSearchParams();
+    formData.set('username', username);
+    formData.set('password', password);
+
+    return this.http.post(`${this.apiUrl}/login`, formData.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      responseType: 'text',
+      withCredentials: true
     }).pipe(
-      tap((response: AuthResponse) => {
-        if (response.token) {
-          localStorage.setItem('token', response.token);
-          this.tokenSubject.next(response.token);
-        }
+      tap(() => {
+        localStorage.setItem('username', username);
+        this.loggedInSubject.next(true);
+        this.usernameSubject.next(username);
       })
     );
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    this.tokenSubject.next(null);
-  }
-
-  getProfile(): Observable<any> {
-    const token = localStorage.getItem('token');
-    let headers = new HttpHeaders();
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-    return this.http.get<any>(`${this.apiUrl}/profile`, { headers });
+  logout(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/logout`, null, {
+      responseType: 'text',
+      withCredentials: true
+    }).pipe(
+      tap(() => {
+        localStorage.removeItem('username');
+        this.loggedInSubject.next(false);
+        this.usernameSubject.next(null);
+      })
+    );
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    return this.checkLoginStatus();
   }
 
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  getUsername(): string | null {
+    return localStorage.getItem('username');
+  }
+
+  getCsrfToken(): string | null {
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? match[1] : null;
   }
 }

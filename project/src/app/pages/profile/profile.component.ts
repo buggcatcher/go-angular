@@ -166,23 +166,14 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    // Fetch profile data from backend
-    this.authService.getProfile().subscribe({
-      next: (data) => {
-        this.profileData = data;
-        this.loading = false;
-      },
-      error: (error) => {
-        this.loading = false;
-        if (error.status === 401) {
-          // Token expired or invalid, redirect to login
-          this.authService.logout();
-          this.router.navigate(['/login']);
-        } else {
-          this.error = 'Failed to load profile. Please try again.';
-        }
-      }
-    });
+    // Get username from localStorage
+    const username = this.authService.getUsername();
+    if (username) {
+      this.profileData = { username };
+      this.loading = false;
+    } else {
+      this.router.navigate(['/login']);
+    }
   }
 
   getInitial(): string {
@@ -190,7 +181,14 @@ export class ProfileComponent implements OnInit {
   }
 
   onLogout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        // Even if logout fails on backend, clear local state
+        this.router.navigate(['/login']);
+      }
+    });
   }
 }

@@ -8,6 +8,19 @@ import (
 	"time"
 )
 
+func enableCORS(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:4200")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return true
+	}
+	return false
+}
+
 func main() {
 	dsn := os.Getenv("MYSQL_DSN")
 	if dsn == "" {
@@ -32,6 +45,10 @@ func main() {
 }
 
 func protected(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(w, r) {
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
@@ -47,6 +64,10 @@ func protected(w http.ResponseWriter, r *http.Request) {
 
 // POST request used for creating new resources and sending data
 func register(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(w, r) {
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
@@ -89,6 +110,10 @@ func register(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(w, r) {
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid Method", http.StatusMethodNotAllowed)
 		return
@@ -129,6 +154,10 @@ func login(w http.ResponseWriter, r *http.Request) {
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(w, r) {
+		return
+	}
+
 	if err := Authorize(r); err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return

@@ -265,7 +265,7 @@ export class LoginComponent {
     this.authService.login(this.username, this.password).subscribe({
       next: (response) => {
         this.loading = false;
-        this.message = response.message || 'Login successful!';
+        this.message = response || 'Login successful!';
         this.isLoggedIn = true;
         this.loggedInUser = this.username;
         // Redirect to profile
@@ -277,8 +277,8 @@ export class LoginComponent {
         this.loading = false;
         if (error.status === 401) {
           this.error = 'Invalid username or password';
-        } else if (error.error && error.error.error) {
-          this.error = error.error.error;
+        } else if (error.error) {
+          this.error = error.error;
         } else {
           this.error = 'An error occurred. Please try again.';
         }
@@ -301,8 +301,8 @@ export class LoginComponent {
       return;
     }
 
-    if (this.regPassword.length < 6) {
-      this.error = 'Password must be at least 6 characters';
+    if (this.regUsername.length < 8 || this.regPassword.length < 8) {
+      this.error = 'Username and password must be at least 8 characters';
       return;
     }
 
@@ -338,8 +338,10 @@ export class LoginComponent {
         this.loading = false;
         if (error.status === 409) {
           this.error = 'Username already exists';
-        } else if (error.error && error.error.error) {
-          this.error = error.error.error;
+        } else if (error.status === 406) {
+          this.error = 'Username and password must be at least 8 characters';
+        } else if (error.error) {
+          this.error = error.error;
         } else {
           this.error = 'Registration failed. Please try again.';
         }
@@ -348,9 +350,18 @@ export class LoginComponent {
   }
 
   onLogout(): void {
-    this.authService.logout();
-    this.isLoggedIn = false;
-    this.loggedInUser = '';
-    this.message = 'Logged out successfully';
+    this.authService.logout().subscribe({
+      next: () => {
+        this.isLoggedIn = false;
+        this.loggedInUser = '';
+        this.message = 'Logged out successfully';
+      },
+      error: () => {
+        // Even if backend logout fails, clear local state
+        this.isLoggedIn = false;
+        this.loggedInUser = '';
+        this.message = 'Logged out successfully';
+      }
+    });
   }
 }
