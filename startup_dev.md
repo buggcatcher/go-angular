@@ -69,3 +69,7 @@ Reset DB completely (WARNING: deletes all data):
 
 Login with: username=demo, password=demo123
 
+## Disable mysql service autoboot
+
+sudo systemctl disable --now mysql
+

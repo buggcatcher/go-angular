@@ -54,8 +54,22 @@ export class AuthService {
     );
   }
 
-  logout(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/logout`, null, {
+  // logout returns an Observable
+  logout(): Observable<string> {
+    const username = this.getUsername() ?? '';
+    const formData = new URLSearchParams();
+    formData.set('username', username);
+
+    const csrfToken = this.getCsrfToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    };
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    return this.http.post(`${this.apiUrl}/logout`, formData.toString(), {
+      headers,
       responseType: 'text',
       withCredentials: true
     }).pipe(

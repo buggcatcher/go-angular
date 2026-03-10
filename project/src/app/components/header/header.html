@@ -26,6 +26,18 @@
         <li class="nav-item">
           <a class="nav-link" routerLink="/contacts">Contacts</a>
         </li>
+        <!-- isLoggedIn is and observable, | async
+              is used to subscribe to it and get the latest value
+         -->
+        @if (authService.isLoggedIn$ | async) {
+          <li class="nav-item">
+            <button class="nav-link" type="button" (click)="onLogout()">Logout</button>
+          </li>
+        } @else {
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/login">Login</a>
+          </li>
+        }
       </ul>
     </div>
   </div>
